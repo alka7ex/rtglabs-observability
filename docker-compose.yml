@@ -1,5 +1,4 @@
 version: '3.8'
-
 services:
   alloy:
     build:
@@ -9,7 +8,7 @@ services:
     ports:
       - "4317:4317" # OTLP gRPC
       - "4318:4318" # OTLP HTTP
-      - "9090:9090" # Alloy's own metrics/debug UI (optional, but good for troubleshooting)
+      - "9090:9090" # Alloy's own metrics/debug UI
     environment:
       - GRAFANA_CLOUD_LOKI_USERNAME=${GRAFANA_CLOUD_LOKI_USERNAME}
       - GRAFANA_CLOUD_LOKI_PASSWORD=${GRAFANA_CLOUD_LOKI_PASSWORD}
@@ -23,41 +22,45 @@ services:
       - coolify.type=application
 
   node_exporter:
-    image: prom/node-exporter:latest # Or a specific version like 'v1.7.0'
+    image: prom/node-exporter:v1.7.0
     container_name: node_exporter
-    network_mode: host
     restart: unless-stopped
+    # REMOVED network_mode: host - this was causing the sudo issues
+    ports:
+      - "9100:9100"  # Expose node_exporter port instead of host mode
     volumes:
+      # More restrictive volume mounts to prevent permission issues
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
-      - /:/rootfs:ro,rslave
+      - /:/rootfs:ro
     command:
       - '--path.procfs=/host/proc'
       - '--path.sysfs=/host/sys'
       - '--path.rootfs=/rootfs'
       - '--collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/run/docker.sock)($|/)'
+      - '--web.listen-address=:9100'
+    networks:
+      - coolify
     labels:
       - coolify.managed=true
-      - coolify.applicationId=18 # Use a different ID for node_exporter
+      - coolify.applicationId=18
       - coolify.type=service
 
   postgres_exporter:
-    image: quay.io/prometheuscommunity/postgres-exporter:latest # Or a specific version
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.15.0
     container_name: postgres_exporter
     restart: unless-stopped
-    # The port where postgres_exporter exposes metrics (default 9187)
     ports:
       - "9187:9187"
     environment:
-      # This is the crucial part: how the exporter connects to PostgreSQL
-      # Replace 'your_db_service_name', 'your_db_username', 'your_db_password', 'your_db_name'
-      # If your PostgreSQL service in Coolify is named 'mypostgresdb', then use 'mypostgresdb' for the host.
       - DATA_SOURCE_NAME=${DATA_SOURCE_NAME}
-      # You can also pass these values as environment variables for better security
-      # e.g., DATA_SOURCE_NAME=postgresql://${POSTGRES_EXPORTER_USER}:${POSTGRES_EXPORTER_PASSWORD}@${POSTGRES_DB_HOST}:${POSTGRES_DB_PORT}/${POSTGRES_DB_NAME}?sslmode=disable
     networks:
-      - coolify # Crucial: place it on the same network as your PostgreSQL database if Coolify manages it.
+      - coolify
     labels:
       - coolify.managed=true
-      - coolify.applicationId=19 # Use a different ID for postgres_exporter
+      - coolify.applicationId=19
       - coolify.type=service
+
+networks:
+  coolify:
+    external: true
