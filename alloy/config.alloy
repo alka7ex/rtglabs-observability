@@ -1,55 +1,33 @@
+remotecfg {
+        url            = "https://fleet-management-prod-020.grafana.net"
+        id             = "rtglabs"
+        poll_frequency = "60s"
+
+        basic_auth {
+                username = "${GRAFANA_CLOUD_FLEET_USERNAME}"
+		password = "${GRAFANA_CLOUD_PASSWORD}"
+        }
+}
+
 prometheus.remote_write "metrics_service" {
-  endpoint {
-    url = "https://prometheus-prod-52-prod-ap-southeast-2.grafana.net/api/prom/push"
-    basic_auth {
-      username = "${GRAFANA_CLOUD_PROM_USERNAME}"
-      password = "${GRAFANA_CLOUD_API_KEY}"
-    }
-  }
+        endpoint {
+                url = "https://prometheus-prod-52-prod-ap-southeast-2.grafana.net/api/prom/push"
+
+                basic_auth {
+                        username = "${GRAFANA_CLOUD_PROM_USERNAME}"
+			password = "${GRAFANA_CLOUD_PASSWORD}"
+                }
+        }
 }
 
-otelcol.receiver.otlp "default" {
-  grpc {
-    endpoint = "0.0.0.0:4317" 
-  }
-  http {
-    endpoint = "0.0.0.0:4318" 
-  }
-  
-  output {
-    metrics = [otelcol.processor.batch.default.input]
-  }
+loki.write "grafana_cloud_loki" {
+        endpoint {
+                url = "https://logs-prod-032.grafana.net/loki/api/v1/push"
+
+                basic_auth {
+                        username = "${GRAFANA_CLOUD_LOKI_USERNAME}"
+                        password = "${GRAFANA_CLOUD_PROM_PASSWORD}"
+                }
+        }
 }
 
-prometheus.scrape "goapps" {
-  targets = [
-    {"__address__" = "goapp1:8080"},
-    {"__address__" = "goapp2:8080"},
-    {"__address__" = "goapp3:8080"},
-  ]
-  job_name = "goapps"
-  scrape_interval = "15s"
-  metrics_path = "/metrics"
-  
-  forward_to = [prometheus.remote_write.metrics_service.receiver]
-}
-
-otelcol.processor.batch "default" {
-  output {
-    metrics = [otelcol.exporter.prometheus.default.input]
-  }
-}
-
-otelcol.exporter.prometheus "default" {
-  forward_to = [prometheus.remote_write.metrics_service.receiver]
-}
-
-otelcol.service "default" {
-  pipelines = {
-    metrics = [
-      otelcol.receiver.otlp.default,
-      otelcol.processor.batch.default,
-      otelcol.exporter.prometheus.default,
-    ],
-  }
-}
