@@ -52,7 +52,7 @@ services:
       # This is the crucial part: how the exporter connects to PostgreSQL
       # Replace 'your_db_service_name', 'your_db_username', 'your_db_password', 'your_db_name'
       # If your PostgreSQL service in Coolify is named 'mypostgresdb', then use 'mypostgresdb' for the host.
-      - DATA_SOURCE_NAME=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable
+      - DATA_SOURCE_NAME=${DATA_SOURCE_NAME}
       # You can also pass these values as environment variables for better security
       # e.g., DATA_SOURCE_NAME=postgresql://${POSTGRES_EXPORTER_USER}:${POSTGRES_EXPORTER_PASSWORD}@${POSTGRES_DB_HOST}:${POSTGRES_DB_PORT}/${POSTGRES_DB_NAME}?sslmode=disable
     networks:
