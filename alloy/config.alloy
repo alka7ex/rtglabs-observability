@@ -5,29 +5,6 @@ remotecfg {
 
         basic_auth {
                 username = "${GRAFANA_CLOUD_FLEET_USERNAME}"
-		password = "${GRAFANA_CLOUD_PASSWORD}"
+		password = "${GRAFANA_CLOUD_FLEET_PASSWORD}"
         }
 }
-
-prometheus.remote_write "metrics_service" {
-        endpoint {
-                url = "https://prometheus-prod-52-prod-ap-southeast-2.grafana.net/api/prom/push"
-
-                basic_auth {
-                        username = "${GRAFANA_CLOUD_PROM_USERNAME}"
-			password = "${GRAFANA_CLOUD_PASSWORD}"
-                }
-        }
-}
-
-loki.write "grafana_cloud_loki" {
-        endpoint {
-                url = "https://logs-prod-032.grafana.net/loki/api/v1/push"
-
-                basic_auth {
-                        username = "${GRAFANA_CLOUD_LOKI_USERNAME}"
-                        password = "${GRAFANA_CLOUD_PASSWORD}"
-                }
-        }
-}
-
