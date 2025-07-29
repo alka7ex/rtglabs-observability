@@ -16,13 +16,16 @@ services:
       - GRAFANA_CLOUD_PROM_PASSWORD=${GRAFANA_CLOUD_PROM_PASSWORD}
     networks:
       - coolify
+    # Add this to reach host services
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     labels:
       - coolify.managed=true
       - coolify.applicationId=17
       - coolify.type=application
 
   postgres_exporter:
-    image: quay.io/prometheuscommunity/postgres-exporter:latest
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.15.0
     container_name: postgres_exporter
     restart: unless-stopped
     ports:

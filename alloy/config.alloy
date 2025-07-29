@@ -1,7 +1,6 @@
 prometheus.remote_write "metrics_service" {
     endpoint {
         url = "https://prometheus-prod-52-prod-ap-southeast-2.grafana.net/api/prom/push"
-
         basic_auth {
             username = env("GRAFANA_CLOUD_PROM_USERNAME")
             password = env("GRAFANA_CLOUD_PROM_PASSWORD")
@@ -12,11 +11,10 @@ prometheus.remote_write "metrics_service" {
 loki.write "grafana_cloud_loki" {
     endpoint {
         url = "https://logs-prod-032.grafana.net/loki/api/v1/push"
-
         basic_auth {
             username = env("GRAFANA_CLOUD_LOKI_USERNAME") 
-	    password = env("GRAFANA_CLOUD_LOKI_PASSWORD")
-	    }
+            password = env("GRAFANA_CLOUD_LOKI_PASSWORD")
+        }
     }
 }
 
@@ -29,7 +27,6 @@ prometheus.scrape "goapps" {
   job_name = "goapps"
   scrape_interval = "15s"
   metrics_path = "/metrics"
-
   forward_to = [prometheus.remote_write.metrics_service.receiver]
 }
 
@@ -40,6 +37,16 @@ prometheus.scrape "postgres_exporter" {
   job_name = "postgres_exporter"
   scrape_interval = "30s" 
   metrics_path = "/metrics"
+  forward_to = [prometheus.remote_write.metrics_service.receiver]
+}
 
+// ADD THIS: Node exporter scrape job
+prometheus.scrape "node_exporter" {
+  targets = [
+    {"__address__" = "host.docker.internal:9100"},
+  ]
+  job_name = "node_exporter"
+  scrape_interval = "15s"
+  metrics_path = "/metrics"
   forward_to = [prometheus.remote_write.metrics_service.receiver]
 }
