@@ -14,33 +14,40 @@ services:
       - GRAFANA_CLOUD_LOKI_PASSWORD=${GRAFANA_CLOUD_LOKI_PASSWORD}
       - GRAFANA_CLOUD_PROM_USERNAME=${GRAFANA_CLOUD_PROM_USERNAME}
       - GRAFANA_CLOUD_PROM_PASSWORD=${GRAFANA_CLOUD_PROM_PASSWORD}
+      - POSTGRES_DSN=${POSTGRES_DSN} # New: Pass PostgreSQL DSN to Alloy
     networks:
       - coolify
-    # Add this to reach host services
+    # Add this to reach host services (for node_exporter, and if Postgres is on host)
     extra_hosts:
       - "host.docker.internal:host-gateway"
     # Mount Docker socket for container log collection
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      # New: Mount PostgreSQL log directory from the host into the Alloy container
+      # Adjust /path/to/your/host/postgres/logs if different
+      - /var/log/postgresql:/var/log/postgresql:ro
     labels:
       - coolify.managed=true
       - coolify.applicationId=17
       - coolify.type=application
 
-  postgres_exporter:
-    image: quay.io/prometheuscommunity/postgres-exporter:v0.15.0
-    container_name: postgres_exporter
-    restart: unless-stopped
-    ports:
-      - "9187:9187"
-    environment:
-      - DATA_SOURCE_NAME=${DATA_SOURCE_NAME}
-    networks:
-      - coolify
-    labels:
-      - coolify.managed=true
-      - coolify.applicationId=19
-      - coolify.type=service
+  # postgres_exporter service is now removed as Alloy's built-in exporter is used
+
+  # Example Go applications - ensure these are defined if they're not external
+  # For simplicity, assuming 'goapp1', 'goapp2', 'goapp3' refer to other services
+  # in your Docker Compose or external services reachable by name.
+  # If they are separate containers, they would look something like this:
+  # goapp1:
+  #   image: your_go_app_image_1
+  #   container_name: goapp1
+  #   ports:
+  #     - "8080:8080" # Or different port if needed
+  #   networks:
+  #     - coolify
+  #   labels:
+  #     - coolify.managed=true
+  #     - coolify.applicationId=20
+  #     - coolify.type=go_application
 
 networks:
   coolify:
