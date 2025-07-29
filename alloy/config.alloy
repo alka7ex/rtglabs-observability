@@ -25,6 +25,8 @@ loki.write "grafana_cloud_loki" {
 // =========================================================================
 
 prometheus.exporter.unix "integrations_node_exporter" {
+
+  rootfs_path = "/host"  
   disable_collectors = ["ipvs", "btrfs", "infiniband", "xfs", "zfs"]
 
   filesystem {

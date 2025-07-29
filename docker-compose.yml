@@ -21,26 +21,17 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /var/log/postgresql:/var/log/postgresql:ro # For Postgres logs
-      # New volumes for Node Exporter (unix) and Journald:
-      - /proc:/proc:ro
-      - /sys:/sys:ro
-      - /:/host:ro,rslave # Mount root filesystem as read-only, needed for some collectors
-      - /var/lib/docker:/var/lib/docker:ro # For Docker metrics if needed, or other host path
-      - /var/log/journal:/var/log/journal:ro # For journald logs (if present)
-      - /run/systemd/journal/socket:/run/systemd/journal/socket:ro # For direct journald access
+      - /var/log/postgresql:/var/log/postgresql:ro
+      - /proc:/host/proc:ro # Map host's /proc to /host/proc in container
+      - /sys:/host/sys:ro   # Map host's /sys to /host/sys in container
+      - /var/log/journal:/var/log/journal:ro
+      - /run/systemd/journal/socket:/run/systemd/journal/socket:ro
+
     labels:
       - coolify.managed=true
       - coolify.applicationId=17
       - coolify.type=application
-    # Consider adding 'privileged: true' or specific 'cap_add' if you face permission issues
-    # privileged: true
-    # cap_add:
-    #   - SYS_PTRACE
-    #   - DAC_READ_SEARCH
-
-  # ... (other services)
-
+    privileged: true # This is often necessary for full host visibility via exporter.unix and journal.
 networks:
   coolify:
     external: true
