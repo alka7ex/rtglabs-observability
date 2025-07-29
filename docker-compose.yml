@@ -14,18 +14,32 @@ services:
       - GRAFANA_CLOUD_LOKI_PASSWORD=${GRAFANA_CLOUD_LOKI_PASSWORD}
       - GRAFANA_CLOUD_PROM_USERNAME=${GRAFANA_CLOUD_PROM_USERNAME}
       - GRAFANA_CLOUD_PROM_PASSWORD=${GRAFANA_CLOUD_PROM_PASSWORD}
-      - POSTGRES_DSN=${POSTGRES_DSN} # New: Pass PostgreSQL DSN to Alloy
+      - POSTGRES_DSN=${POSTGRES_DSN}
     networks:
       - coolify
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /var/log/postgresql:/var/log/postgresql:ro
+      - /var/log/postgresql:/var/log/postgresql:ro # For Postgres logs
+      # New volumes for Node Exporter (unix) and Journald:
+      - /proc:/proc:ro
+      - /sys:/sys:ro
+      - /:/host:ro,rslave # Mount root filesystem as read-only, needed for some collectors
+      - /var/lib/docker:/var/lib/docker:ro # For Docker metrics if needed, or other host path
+      - /var/log/journal:/var/log/journal:ro # For journald logs (if present)
+      - /run/systemd/journal/socket:/run/systemd/journal/socket:ro # For direct journald access
     labels:
       - coolify.managed=true
       - coolify.applicationId=17
       - coolify.type=application
+    # Consider adding 'privileged: true' or specific 'cap_add' if you face permission issues
+    # privileged: true
+    # cap_add:
+    #   - SYS_PTRACE
+    #   - DAC_READ_SEARCH
+
+  # ... (other services)
 
 networks:
   coolify:
