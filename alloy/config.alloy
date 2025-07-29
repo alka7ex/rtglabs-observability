@@ -1,10 +1,12 @@
-remotecfg {
-        url            = "https://fleet-management-prod-020.grafana.net"
-        id             = "rtglabs"
-        poll_frequency = "60s"
 
-        basic_auth {
-                username = "${GRAFANA_CLOUD_FLEET_USERNAME}"
-		password = "${GRAFANA_CLOUD_FLEET_PASSWORD}"
-        }
+remotecfg {
+  url            = "https://fleet-management-prod-020.grafana.net"
+  id             = "rtglabs"
+  poll_frequency = "60s"
+
+  basic_auth {
+    username = env("GRAFANA_CLOUD_FLEET_USERNAME")
+    password = env("GRAFANA_CLOUD_FLEET_PASSWORD")
+  }
 }
+
