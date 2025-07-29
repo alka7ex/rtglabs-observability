@@ -1,0 +1,88 @@
+// Use your actual Grafana Cloud endpoints and credentials
+prometheus.remote_write "metrics_service" {
+  endpoint {
+    url = "https://prometheus-prod-52-prod-ap-southeast-2.grafana.net/api/prom/push"
+    basic_auth {
+      username = "${GRAFANA_CLOUD_PROM_USERNAME}"
+      password = "${GRAFANA_CLOUD_API_KEY}"
+    }
+  }
+}
+
+loki.write "grafana_cloud_loki" {
+  endpoint {
+    url = "https://logs-prod-032.grafana.net/loki/api/v1/push"
+    basic_auth {
+      username = "${GRAFANA_CLOUD_LOKI_USERNAME}"
+      password = "${GRAFANA_CLOUD_API_KEY}"
+    }
+  }
+}
+
+// OTLP Receiver: Receives metrics, traces, and logs from your Go applications via OTLP.
+otelcol.receiver.otlp "default" {
+  grpc {
+    endpoint = "0.0.0.0:4317" // Listen on all network interfaces
+  }
+  http {
+    endpoint = "0.0.0.0:4318" // Listen on all network interfaces
+  }
+  
+  output {
+    metrics = [otelcol.processor.batch.default.input]
+    logs    = [otelcol.processor.batch.default.input]
+    traces  = [otelcol.processor.batch.default.input]
+  }
+}
+
+// Prometheus Scrape: Scrapes Prometheus metrics directly from your Go applications.
+prometheus.scrape "goapps" {
+  targets = [
+    {"__address__" = "goapp1:8080"},
+    {"__address__" = "goapp2:8080"},
+    {"__address__" = "goapp3:8080"},
+  ]
+  job_name = "goapps"
+  scrape_interval = "15s"
+  metrics_path = "/metrics"
+  
+  forward_to = [prometheus.remote_write.metrics_service.receiver]
+}
+
+// Batch Processor: Batches telemetry data before sending it to exporters for efficiency.
+otelcol.processor.batch "default" {
+  output {
+    metrics = [otelcol.exporter.prometheus.default.input]
+    logs    = [otelcol.exporter.loki.default.input]
+    traces  = [otelcol.exporter.otlp.tempo.input]
+  }
+}
+
+// Loki Exporter: Converts OTLP logs to Loki format and forwards them.
+otelcol.exporter.loki "default" {
+  forward_to = [loki.write.grafana_cloud_loki.receiver]
+}
+
+// Tempo Exporter: Sends traces to Grafana Cloud Tempo.
+// You'll need to get your Tempo endpoint from Grafana Cloud
+otelcol.exporter.otlp "tempo" {
+  client {
+    // IMPORTANT: Make sure this endpoint is correct for your Tempo instance in ap-southeast-2
+    // It's currently a placeholder, verify it from your Grafana Cloud Tempo details page.
+    endpoint = "https://tempo-prod-xx-prod-ap-southeast-2.grafana.net:443" 
+    tls {
+      insecure = false
+    }
+    auth = otelcol.auth.basic.tempo.handler
+  }
+}
+
+otelcol.auth.basic "tempo" {
+  username = "${GRAFANA_CLOUD_TEMPO_USERNAME}"
+  password = "${GRAFANA_CLOUD_API_KEY}" // Tempo typically uses the same API key as Prom/Loki for basic auth
+}
+
+// Prometheus Exporter: Converts OTEL metrics to Prometheus format
+otelcol.exporter.prometheus "default" {
+  forward_to = [prometheus.remote_write.metrics_service.receiver]
+}

@@ -1,5 +1,3 @@
 FROM grafana/alloy:latest
-
-COPY config.river /etc/alloy.river
-
-CMD ["run", "/etc/alloy.river"]
+COPY config.alloy /etc/alloy/config.alloy
+CMD ["run", "/etc/alloy/config.alloy"]
