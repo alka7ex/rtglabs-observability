@@ -26,7 +26,7 @@ loki.write "grafana_cloud_loki" {
 
                 basic_auth {
                         username = "${GRAFANA_CLOUD_LOKI_USERNAME}"
-                        password = "${GRAFANA_CLOUD_PROM_PASSWORD}"
+                        password = "${GRAFANA_CLOUD_PASSWORD}"
                 }
         }
 }
