@@ -56,10 +56,15 @@ otelcol.exporter.otlp "tempo" {
     tls {
       insecure = false
     }
-    headers = {
-      authorization = "Basic " + base64.encode(env("GRAFANA_CLOUD_TEMPO_USERNAME") + ":" + env("GRAFANA_CLOUD_API_KEY"))
+    auth {
+      authenticator = otelcol.auth.basic.tempo.handler
     }
   }
+}
+
+otelcol.auth.basic "tempo" {
+  username = env("GRAFANA_CLOUD_TEMPO_USERNAME")
+  password = env("GRAFANA_CLOUD_API_KEY")
 }
 
 // Prometheus Exporter: Converts OTEL metrics to Prometheus format
