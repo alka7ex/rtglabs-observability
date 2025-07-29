@@ -3,8 +3,8 @@ prometheus.remote_write "metrics_service" {
                 url = "https://prometheus-prod-52-prod-ap-southeast-2.grafana.net/api/prom/push"
 
                 basic_auth {
-                        username = "${GRAFANA_CLOUD_PROM_USERNAME}"
-                        password = "${GRAFANA_CLOUD_PROM_PASSWORD}"
+                        username = "2571561"
+                        password = "glc_eyJvIjoiMTQ4ODc0MCIsIm4iOiJzdGFjay0xMzIzNjYzLWhtLXdyaXRlLXByb20td3JpdGUxIiwiayI6IjA5bVEzY0V6aDcxNWxDVTc1YjF4WUVPOSIsIm0iOnsiciI6InByb2QtYXAtc291dGhlYXN0LTIifX0="
                 }
         }
 }
