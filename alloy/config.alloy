@@ -49,7 +49,7 @@ otelcol.service "default" {
     metrics = [
       otelcol.receiver.otlp.default,
       otelcol.processor.batch.default,
-      otelcol.exporter.prometheus.default
-    ]
+      otelcol.exporter.prometheus.default,
+    ],
   }
 }
