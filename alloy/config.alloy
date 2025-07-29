@@ -1,3 +1,4 @@
+// Remote write endpoint for metrics
 prometheus.remote_write "metrics_service" {
     endpoint {
         url = "https://prometheus-prod-52-prod-ap-southeast-2.grafana.net/api/prom/push"
@@ -8,6 +9,7 @@ prometheus.remote_write "metrics_service" {
     }
 }
 
+// Loki endpoint for logs
 loki.write "grafana_cloud_loki" {
     endpoint {
         url = "https://logs-prod-032.grafana.net/loki/api/v1/push"
@@ -18,35 +20,169 @@ loki.write "grafana_cloud_loki" {
     }
 }
 
-prometheus.scrape "goapps" {
-  targets = [
-    {"__address__" = "goapp1:8080"},
-    {"__address__" = "goapp2:8080"},
-    {"__address__" = "goapp3:8080"},
-  ]
-  job_name = "goapps"
-  scrape_interval = "15s"
-  metrics_path = "/metrics"
-  forward_to = [prometheus.remote_write.metrics_service.receiver]
+// NODE EXPORTER INTEGRATION (using external service)
+discovery.relabel "integrations_node_exporter" {
+  targets = [{
+    __address__ = "host.docker.internal:9100",
+  }]
+  
+  rule {
+    target_label = "instance"
+    replacement  = "rtglabs-server" // Your server name
+  }
+  rule {
+    target_label = "job"
+    replacement = "integrations/node_exporter"
+  }
 }
 
-prometheus.scrape "postgres_exporter" {
-  targets = [
-    {"__address__" = "postgres_exporter:9187"}, 
-  ]
-  job_name = "postgres_exporter"
-  scrape_interval = "30s" 
-  metrics_path = "/metrics"
-  forward_to = [prometheus.remote_write.metrics_service.receiver]
-}
-
-// ADD THIS: Node exporter scrape job
-prometheus.scrape "node_exporter" {
-  targets = [
-    {"__address__" = "host.docker.internal:9100"},
-  ]
-  job_name = "node_exporter"
+prometheus.scrape "integrations_node_exporter" {
+  targets    = discovery.relabel.integrations_node_exporter.output
+  forward_to = [prometheus.relabel.integrations_node_exporter.receiver]
   scrape_interval = "15s"
   metrics_path = "/metrics"
+}
+
+prometheus.relabel "integrations_node_exporter" {
   forward_to = [prometheus.remote_write.metrics_service.receiver]
+  
+  // Drop scrape collector metrics (they're not useful)
+  rule {
+    source_labels = ["__name__"]
+    regex         = "node_scrape_collector_.+"
+    action        = "drop"
+  }
+  
+  // Add environment label
+  rule {
+    target_label = "environment"
+    replacement  = "production"
+  }
+}
+
+// POSTGRES EXPORTER INTEGRATION
+discovery.relabel "integrations_postgres_exporter" {
+  targets = [{
+    __address__ = "postgres_exporter:9187",
+  }]
+  
+  rule {
+    target_label = "instance"
+    replacement  = "rtglabs-postgres"
+  }
+  rule {
+    target_label = "job"
+    replacement = "integrations/postgres_exporter"
+  }
+}
+
+prometheus.scrape "integrations_postgres_exporter" {
+  targets    = discovery.relabel.integrations_postgres_exporter.output
+  forward_to = [prometheus.relabel.integrations_postgres_exporter.receiver]
+  scrape_interval = "30s"
+  metrics_path = "/metrics"
+}
+
+prometheus.relabel "integrations_postgres_exporter" {
+  forward_to = [prometheus.remote_write.metrics_service.receiver]
+  
+  // Add database label
+  rule {
+    target_label = "database"
+    replacement  = "main"
+  }
+  
+  // Add environment label
+  rule {
+    target_label = "environment"
+    replacement  = "production"
+  }
+}
+
+// GO APPLICATIONS INTEGRATION
+discovery.relabel "integrations_go_apps" {
+  targets = [
+    {__address__ = "goapp1:8080", app = "goapp1"},
+    {__address__ = "goapp2:8080", app = "goapp2"},
+    {__address__ = "goapp3:8080", app = "goapp3"},
+  ]
+  
+  rule {
+    source_labels = ["app"]
+    target_label = "instance"
+  }
+  rule {
+    target_label = "job"
+    replacement = "integrations/go_applications"
+  }
+}
+
+prometheus.scrape "integrations_go_apps" {
+  targets    = discovery.relabel.integrations_go_apps.output
+  forward_to = [prometheus.relabel.integrations_go_apps.receiver]
+  scrape_interval = "15s"
+  metrics_path = "/metrics"
+}
+
+prometheus.relabel "integrations_go_apps" {
+  forward_to = [prometheus.remote_write.metrics_service.receiver]
+  
+  // Add application type label
+  rule {
+    target_label = "app_type"
+    replacement  = "go_service"
+  }
+  
+  // Add environment label
+  rule {
+    target_label = "environment"
+    replacement  = "production"
+  }
+}
+
+// DOCKER CONTAINER LOGS (if you want container logs)
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "containers" {
+  targets = discovery.docker.containers.targets
+  
+  // Only collect logs from containers with specific labels
+  rule {
+    source_labels = ["__meta_docker_container_label_coolify_managed"]
+    regex = "true"
+    action = "keep"
+  }
+  
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    target_label = "container"
+  }
+  
+  rule {
+    source_labels = ["__meta_docker_container_label_coolify_applicationId"]
+    target_label = "application_id"
+  }
+  
+  rule {
+    target_label = "job"
+    replacement = "integrations/docker_containers"
+  }
+}
+
+loki.source.docker "containers" {
+  host             = "unix:///var/run/docker.sock"
+  targets          = discovery.relabel.containers.output
+  forward_to       = [loki.relabel.containers.receiver]
+  relabel_rules    = discovery.relabel.containers.rules
+}
+
+loki.relabel "containers" {
+  forward_to = [loki.write.grafana_cloud_loki.receiver]
+  
+  rule {
+    target_label = "environment"
+    replacement = "production"
+  }
 }

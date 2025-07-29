@@ -19,6 +19,9 @@ services:
     # Add this to reach host services
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    # Mount Docker socket for container log collection
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     labels:
       - coolify.managed=true
       - coolify.applicationId=17
