@@ -22,6 +22,28 @@ services:
       - coolify.managed=true
       - coolify.applicationId=17
       - coolify.type=application
+  node_exporter:
+    image: prom/node-exporter:latest # Or a specific version like 'v1.7.0'
+    container_name: node_exporter
+    # This is crucial for node_exporter to see host metrics
+    network_mode: host
+    restart: unless-stopped
+    # Mount necessary host paths for metrics
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro,rslave
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/run/docker.sock)($|/)'
+    labels:
+      # You might want to add Coolify labels if you want Coolify to manage it too
+      - coolify.managed=true
+      - coolify.applicationId=18 # Use a different ID for node_exporter
+      - coolify.type=service # Or application, depending on Coolify's service definitions
+
 networks:
   coolify:
     external: true

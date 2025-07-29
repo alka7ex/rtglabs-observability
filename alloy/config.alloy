@@ -32,3 +32,14 @@ prometheus.scrape "goapps" {
 
   forward_to = [prometheus.remote_write.metrics_service.receiver]
 }
+
+prometheus.scrape "node_exporter" {
+  targets = [
+    {"__address__" = "localhost:9100"}, // Scrape the node_exporter running on the host
+  ]
+  job_name = "node_exporter"
+  scrape_interval = "15s" # You can adjust this interval
+  metrics_path = "/metrics"
+
+  forward_to = [prometheus.remote_write.metrics_service.receiver]
+}
