@@ -1,3 +1,4 @@
+# docker-compose.yml (as it was before hardcoding)
 version: '3.8'
 
 services:
@@ -7,20 +8,20 @@ services:
       dockerfile: Dockerfile
     container_name: alloy
     ports:
-      - "4317:4317" # OTLP gRPC
-      - "4318:4318" # OTLP HTTP
-      - "9090:9090" # Alloy's own metrics/debug UI (optional, but good for troubleshooting)
+      - "4317:4317"
+      - "4318:4318"
+      - "9090:9090"
     environment:
-      # These environment variables will be passed to your Alloy container
-      # You should set these securely in Coolify as secrets or environment variables
-    - GRAFANA_CLOUD_LOKI_PASSWORD=glc_eyJvIjoiMTQ4ODc0MCIsIm4iOiJzdGFjay0xMzIzNjYzLWhsLXdyaXRlLWxva2ktd3JpdGUiLCJrIjoiN1J0STdpcWlDUjM4WFpvOFoyNzRkUTg4IiwibSI6eyJyIjoicHJvZC1hcC1zb3V0aGVhc3QtMiJ9fQ==
-    - GRAFANA_CLOUD_LOKI_USERNAME=1281457
-    - GRAFANA_CLOUD_PROM_PASSWORD=glc_eyJvIjoiMTQ4ODc0MCIsIm4iOiJzdGFjay0xMzIzNjYzLWhtLXdyaXRlLXByb20td3JpdGUxIiwiayI6IjA5bVEzY0V6aDcxNWxDVTc1YjF4WUVPOSIsIm0iOnsiciI6InByb2QtYXAtc291dGhlYXN0LTIifX0=
-    - GRAFANA_CLOUD_PROM_USERNAME=2571561
-
+      - GRAFANA_CLOUD_LOKI_USERNAME=${GRAFANA_CLOUD_LOKI_USERNAME}
+      - GRAFANA_CLOUD_LOKI_PASSWORD=${GRAFANA_CLOUD_LOKI_PASSWORD}
+      - GRAFANA_CLOUD_PROM_USERNAME=${GRAFANA_CLOUD_PROM_USERNAME}
+      - GRAFANA_CLOUD_PROM_PASSWORD=${GRAFANA_CLOUD_PROM_PASSWORD}
     networks:
-      - coolify # Crucial to put it on the same network as your Go apps and Traefik
-
+      - coolify
+    labels:
+      - coolify.managed=true
+      - coolify.applicationId=17
+      - coolify.type=application
 networks:
   coolify:
     external: true

@@ -1,23 +1,23 @@
 prometheus.remote_write "metrics_service" {
-        endpoint {
-                url = "https://prometheus-prod-52-prod-ap-southeast-2.grafana.net/api/prom/push"
+    endpoint {
+        url = "https://prometheus-prod-52-prod-ap-southeast-2.grafana.net/api/prom/push"
 
-                basic_auth {
-                        username = "${GRAFANA_CLOUD_PROM_USERNAME}"
-                        password = "${GRAFANA_CLOUD_PROM_PASSWORD}"
-                }
+        basic_auth {
+            username = env("GRAFANA_CLOUD_PROM_USERNAME")
+            password = env("GRAFANA_CLOUD_PROM_PASSWORD")
         }
+    }
 }
 
 loki.write "grafana_cloud_loki" {
-        endpoint {
-                url = "https://logs-prod-032.grafana.net/loki/api/v1/push"
+    endpoint {
+        url = "https://logs-prod-032.grafana.net/loki/api/v1/push"
 
-                basic_auth {
-                        username = "${GRAFANA_CLOUD_LOKI_USERNAME}"
-                        password = "${GRAFANA_CLOUD_LOKI_PASSWORD}"
-                }
-        }
+        basic_auth {
+            username = env("GRAFANA_CLOUD_LOKI_USERNAME") 
+	    password = env("GRAFANA_CLOUD_LOKI_PASSWORD")
+	    }
+    }
 }
 
 prometheus.scrape "goapps" {
@@ -32,4 +32,3 @@ prometheus.scrape "goapps" {
 
   forward_to = [prometheus.remote_write.metrics_service.receiver]
 }
-
