@@ -10,15 +10,14 @@ prometheus.remote_write "metrics_service" {
 
 otelcol.receiver.otlp "default" {
   grpc {
-    endpoint = "0.0.0.0:4317" // Listen on all network interfaces
+    endpoint = "0.0.0.0:4317" 
   }
   http {
-    endpoint = "0.0.0.0:4318" // Listen on all network interfaces
+    endpoint = "0.0.0.0:4318" 
   }
   
   output {
     metrics = [otelcol.processor.batch.default.input]
-    // Logs and traces outputs are removed as we are not exporting them
   }
 }
 
@@ -38,7 +37,6 @@ prometheus.scrape "goapps" {
 otelcol.processor.batch "default" {
   output {
     metrics = [otelcol.exporter.prometheus.default.input]
-    // Logs and traces outputs are removed as we are not exporting them
   }
 }
 
@@ -52,7 +50,6 @@ otelcol.service "default" {
       otelcol.receiver.otlp.default,
       otelcol.processor.batch.default,
       otelcol.exporter.prometheus.default
-    ],
+    ]
   }
 }
-*/
