@@ -2,7 +2,6 @@
 otelcol.receiver.otlp "default" {
   protocols = {
     grpc = {}
-    http = {}
   }
 }
 
