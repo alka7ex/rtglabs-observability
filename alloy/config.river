@@ -1,0 +1,68 @@
+// OTLP Receiver: Receives metrics, traces, and logs from your Go applications via OTLP.
+otelcol.receiver.otlp "default" {
+  protocols = {
+    grpc = {}
+    http = {}
+  }
+}
+
+// Prometheus Scrape: Scrapes Prometheus metrics directly from your Go applications.
+// These metrics are then forwarded directly to the Prometheus remote write exporter.
+prometheus.scrape "goapps" {
+  targets = [
+    "goapp1:8080",
+    "goapp2:8080",
+    "goapp3:8080",
+  ]
+  job_name = "goapps"
+  scrape_interval = "15s"
+  forward_to = [prometheus.remote_write.prometheus.receiver] // Forward directly to Grafana Cloud Prometheus
+}
+
+// Batch Processor: Batches telemetry data before sending it to exporters for efficiency.
+otelcol.processor.batch "default" {}
+
+// Loki Exporter: Sends logs to Grafana Cloud Loki.
+loki.write "loki" {
+  endpoint {
+    url = "https://logs-prod3.grafana.net/loki/api/v1/push"
+    basic_auth {
+      username = "${GRAFANA_CLOUD_LOKI_USERNAME}"
+      password = "${GRAFANA_CLOUD_API_KEY}"
+    }
+  }
+}
+
+// Tempo Exporter: Sends traces to Grafana Cloud Tempo.
+tempo.write "tempo" {
+  endpoint {
+    url = "https://tempo-prod10.grafana.net/otlp"
+    basic_auth {
+      username = "${GRAFANA_CLOUD_TEMPO_USERNAME}"
+      password = "${GRAFANA_CLOUD_API_KEY}"
+    }
+  }
+}
+
+// Prometheus Remote Write: Sends metrics to Grafana Cloud Prometheus.
+prometheus.remote_write "prometheus" {
+  endpoint {
+    url = "https://prometheus-prod-13.grafana.net/api/prom/push"
+    basic_auth {
+      username = "${GRAFANA_CLOUD_PROM_USERNAME}"
+      password = "${GRAFANA_CLOUD_API_KEY}"
+    }
+  }
+}
+
+// Collector Pipeline: Defines how received telemetry data flows through processors and exporters.
+otelcol.service "default" {
+  pipelines = {
+    // Traces: OTLP Receiver -> Batch Processor -> Tempo Exporter
+    traces  = [otelcol.receiver.otlp.default, otelcol.processor.batch.default, tempo.write.tempo],
+    // Metrics: OTLP Receiver -> Batch Processor -> Prometheus Remote Write
+    metrics = [otelcol.receiver.otlp.default, otelcol.processor.batch.default, prometheus.remote_write.prometheus],
+    // Logs: OTLP Receiver -> Batch Processor -> Loki Exporter
+    logs    = [otelcol.receiver.otlp.default, otelcol.processor.batch.default, loki.write.loki],
+  }
+}

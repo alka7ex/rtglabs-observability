@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  alloy:
+    build:
+      context: ./alloy
+      dockerfile: Dockerfile
+    container_name: alloy
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+      - "9090:9090" # Alloy's own metrics/debug UI (optional, but good for troubleshooting)
+    environment:
+      # These environment variables will be passed to your Alloy container
+      # You should set these securely in Coolify as secrets or environment variables
+      - GRAFANA_CLOUD_LOKI_USERNAME=${GRAFANA_CLOUD_LOKI_USERNAME}
+      - GRAFANA_CLOUD_API_KEY=${GRAFANA_CLOUD_API_KEY}
+      - GRAFANA_CLOUD_TEMPO_USERNAME=${GRAFANA_CLOUD_TEMPO_USERNAME}
+      - GRAFANA_CLOUD_PROM_USERNAME=${GRAFANA_CLOUD_PROM_USERNAME}
+    networks:
+      - coolify # Crucial to put it on the same network as your Go apps and Traefik
+
+networks:
+  coolify:
+    external: true
