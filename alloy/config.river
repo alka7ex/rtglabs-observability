@@ -1,7 +1,7 @@
 // OTLP Receiver: Receives metrics, traces, and logs from your Go applications via OTLP.
 otelcol.receiver.otlp "default" {
   protocols = {
-    grpc = {},
+    grpc = {}
     http = {}
   }
 }
