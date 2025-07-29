@@ -13,8 +13,11 @@ services:
     environment:
       # These environment variables will be passed to your Alloy container
       # You should set these securely in Coolify as secrets or environment variables
-      - GRAFANA_CLOUD_FLEET_USERNAME="${GRAFANA_CLOUD_FLEET_USERNAME}"
-      - GRAFANA_CLOUD_FLEET_PASSWORD="${GRAFANA_CLOUD_FLEET_PASSWORD}"
+      - GRAFANA_CLOUD_LOKI_USERNAME=${GRAFANA_CLOUD_LOKI_USERNAME}
+      - GRAFANA_CLOUD_LOKI_PASSWORD="${GRAFANA_CLOUD_LOKI_PASSWORD}"
+      - GRAFANA_CLOUD_PROM_USERNAME=${GRAFANA_CLOUD_PROM_USERNAME}
+      - GRAFANA_CLOUD_PROM_PASSWORD="${GRAFANA_CLOUD_PROM_PASSWORD}
+
     networks:
       - coolify # Crucial to put it on the same network as your Go apps and Traefik
 

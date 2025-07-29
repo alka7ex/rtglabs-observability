@@ -1,12 +1,22 @@
+prometheus.remote_write "metrics_service" {
+        endpoint {
+                url = "https://prometheus-prod-52-prod-ap-southeast-2.grafana.net/api/prom/push"
 
-remotecfg {
-  url            = "https://fleet-management-prod-020.grafana.net"
-  id             = "rtglabs"
-  poll_frequency = "60s"
+                basic_auth {
+                        username = "${GRAFANA_CLOUD_PROM_USERNAME}"
+                        password = "${GRAFANA_CLOUD_PROM_PASSWORD}"
+                }
+        }
+}
 
-  basic_auth {
-    username = env("GRAFANA_CLOUD_FLEET_USERNAME")
-    password = env("GRAFANA_CLOUD_FLEET_PASSWORD")
-  }
+loki.write "grafana_cloud_loki" {
+        endpoint {
+                url = "https://logs-prod-032.grafana.net/loki/api/v1/push"
+
+                basic_auth {
+                        username = "${GRAFANA_CLOUD_LOKI_USERNAME}"
+                        password = "${GRAFANA_CLOUD_LOKI_PASSWORD}"
+                }
+        }
 }
 
