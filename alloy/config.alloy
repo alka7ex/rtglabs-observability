@@ -20,3 +20,16 @@ loki.write "grafana_cloud_loki" {
         }
 }
 
+prometheus.scrape "goapps" {
+  targets = [
+    {"__address__" = "goapp1:8080"},
+    {"__address__" = "goapp2:8080"},
+    {"__address__" = "goapp3:8080"},
+  ]
+  job_name = "goapps"
+  scrape_interval = "15s"
+  metrics_path = "/metrics"
+
+  forward_to = [prometheus.remote_write.metrics_service.receiver]
+}
+
