@@ -304,3 +304,37 @@ declare "journal_module" {
 journal_module "node_exporter_journal" {
   forward_to = [loki.relabel.integrations_node_exporter_journal_logs.receiver]
 }
+
+
+// =========================================================================
+// OPEN TELEMETRY TRACES INTEGRATION (NEW)
+// =========================================================================
+
+// OTLP Receiver: Listens for traces from your Go application
+otelcol.receiver.otlp "default" {
+  http {
+    endpoint = "0.0.0.0:4318" 
+  }
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+  output {
+    traces = [otelcol.exporter.otlp.grafana_cloud_tempo.input] 
+  }
+}
+
+// OTLP Exporter: Sends traces to Grafana Cloud Tempo
+otelcol.exporter.otlp "grafana_cloud_tempo" {
+  client {
+    endpoint = env("GRAFANA_CLOUD_TEMPO_ENDPOINT") 
+    auth {
+      basic {
+        username = env("GRAFANA_CLOUD_TEMPO_USERNAME")
+        password = env("GRAFANA_CLOUD_TEMPO_PASSWORD")
+      }
+    }
+    tls {
+      insecure = false 
+    }
+  }
+}
