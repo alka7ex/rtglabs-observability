@@ -37,9 +37,6 @@ otelcol.auth.basic "grafana_cloud" {
   password = env("GRAFANA_CLOUD_TEMPO_PASSWORD")
 }
 
-otelcol.exporter.logging "debug_traces" {
-  loglevel = "debug"
-}
 
 // =========================================================================
 // NODE EXPORTER INTEGRATION (using Alloy's built-in prometheus.exporter.unix)
@@ -333,6 +330,11 @@ journal_module "node_exporter_journal" {
 
 // OTLP Receiver: Listens for traces from your Go application
 
+
+otelcol.exporter.debug "debug_traces" {
+  verbosity = "detailed"
+}
+
 otelcol.receiver.otlp "default" {
   http {
     endpoint = "0.0.0.0:4318"
@@ -343,7 +345,7 @@ otelcol.receiver.otlp "default" {
   output {
     traces = [
       otelcol.exporter.otlp.grafana_cloud_tempo.input,
-      otelcol.exporter.logging.debug_traces.input,
+      otelcol.exporter.debug.debug_traces.input,
     ]
   }
 }

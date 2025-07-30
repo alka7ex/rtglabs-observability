@@ -4,6 +4,7 @@ services:
       context: ./alloy
       dockerfile: Dockerfile
     container_name: alloy
+    command: run /etc/alloy/config.alloy --stability.level=experimental
     ports:
       - "4317:4317" # OTLP gRPC
       - "4318:4318" # OTLP HTTP
