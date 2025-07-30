@@ -20,6 +20,24 @@ loki.write "grafana_cloud_loki" {
     }
 }
 
+
+
+otelcol.exporter.otlp "grafana_cloud_tempo" {
+  client {
+    endpoint = env("GRAFANA_CLOUD_TEMPO_ENDPOINT")
+    auth     = otelcol.auth.basic.grafana_cloud.handler
+    tls {
+      insecure = false
+    }
+  }
+}
+
+otelcol.auth.basic "grafana_cloud" {
+  username = env("GRAFANA_CLOUD_TEMPO_USERNAME")
+  password = env("GRAFANA_CLOUD_TEMPO_PASSWORD")
+}
+
+
 // =========================================================================
 // NODE EXPORTER INTEGRATION (using Alloy's built-in prometheus.exporter.unix)
 // =========================================================================
@@ -323,18 +341,4 @@ otelcol.receiver.otlp "default" {
   }
 }
 
-// OTLP Exporter: Sends traces to Grafana Cloud Tempo
-otelcol.exporter.otlp "grafana_cloud_tempo" {
-  client {
-    endpoint = env("GRAFANA_CLOUD_TEMPO_ENDPOINT") 
-    auth {
-      basic {
-        username = env("GRAFANA_CLOUD_TEMPO_USERNAME")
-        password = env("GRAFANA_CLOUD_TEMPO_PASSWORD")
-      }
-    }
-    tls {
-      insecure = false 
-    }
-  }
-}
+
