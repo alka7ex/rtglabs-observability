@@ -343,7 +343,7 @@ otelcol.receiver.otlp "default" {
   output {
     traces = [
       otelcol.exporter.otlp.grafana_cloud_tempo.input,
-      otelcol.exporter.logging.debug_traces.input
+      otelcol.exporter.logging.debug_traces.input,
     ]
   }
 }
