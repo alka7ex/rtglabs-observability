@@ -1,7 +1,8 @@
 // Remote write endpoint for metrics
+
 prometheus.remote_write "metrics_service" {
     endpoint {
-        url = "https://prometheus-prod-52-prod-ap-southeast-2.grafana.net/api/prom/push"
+        url = env("GRAFANA_CLOUD_PROM_ENDPOINT")
         basic_auth {
             username = env("GRAFANA_CLOUD_PROM_USERNAME")
             password = env("GRAFANA_CLOUD_PROM_PASSWORD")
@@ -12,7 +13,7 @@ prometheus.remote_write "metrics_service" {
 // Loki endpoint for logs
 loki.write "grafana_cloud_loki" {
     endpoint {
-        url = "https://logs-prod-032.grafana.net/loki/api/v1/push"
+        url = env("GRAFANA_CLOUD_LOKI_ENDPOINT")
         basic_auth {
             username = env("GRAFANA_CLOUD_LOKI_USERNAME")
             password = env("GRAFANA_CLOUD_LOKI_PASSWORD")
@@ -35,6 +36,16 @@ otelcol.exporter.otlp "grafana_cloud_tempo" {
 otelcol.auth.basic "grafana_cloud" {
   username = env("GRAFANA_CLOUD_TEMPO_USERNAME")
   password = env("GRAFANA_CLOUD_TEMPO_PASSWORD")
+}
+
+pyroscope.write "grafana_cloud_pyroscope" {
+  endpoint {
+    url = env("GRAFANA_CLOUD_PYROSCOPE_ENDPOINT")
+    basic_auth {
+      username = env("GRAFANA_CLOUD_PYROSCOPE_USERNAME")
+      password = env("GRAFANA_CLOUD_PYROSCOPE_PASSWORD")
+    }
+  }
 }
 
 
@@ -350,3 +361,83 @@ otelcol.receiver.otlp "default" {
   }
 }
 
+// =========================================================================
+// PROFILING INTEGRATION (CORRECTED)
+// =========================================================================
+
+// Discovery targets for profiling
+discovery.relabel "profiling_go_applications_targets" {
+  targets = [
+    {
+      __address__ = "goapp1:6060",
+      job         = "go_application",
+      instance    = "goapp1",
+    },
+    {
+      __address__ = "goapp2:6060", 
+      job         = "go_application",
+      instance    = "goapp2",
+    },
+    {
+      __address__ = "goapp3:6060",
+      job         = "go_application", 
+      instance    = "goapp3",
+    },
+  ]
+  
+  rule {
+    target_label = "environment"
+    replacement  = "production"
+  }
+}
+
+// Use pyroscope.scrape instead of profiling.pull
+pyroscope.scrape "go_applications" {
+  targets    = discovery.relabel.profiling_go_applications_targets.output
+  forward_to = [pyroscope.write.grafana_cloud_pyroscope.receiver]
+  
+  job_name = "go_application"
+  
+  profiling_config {
+    profile.goroutine {
+      enabled = true
+      path    = "/debug/pprof/goroutine"
+    }
+    
+    profile.process_cpu {
+      enabled = true
+      path    = "/debug/pprof/profile"
+      delta   = true
+    }
+    
+    profile.godeltaprof_memory {
+      enabled = true  
+      path    = "/debug/pprof/delta_heap"
+    }
+    
+    profile.memory {
+      enabled = true
+      path    = "/debug/pprof/heap"  
+    }
+    
+    profile.godeltaprof_mutex {
+      enabled = true
+      path    = "/debug/pprof/delta_mutex"
+    }
+    
+    profile.mutex {
+      enabled = true
+      path    = "/debug/pprof/mutex"
+    }
+    
+    profile.godeltaprof_block {
+      enabled = true
+      path    = "/debug/pprof/delta_block" 
+    }
+    
+    profile.block {
+      enabled = true
+      path    = "/debug/pprof/block"
+    }
+  }
+}
