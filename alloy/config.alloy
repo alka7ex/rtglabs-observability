@@ -40,10 +40,10 @@ otelcol.auth.basic "grafana_cloud" {
 
 pyroscope.write "grafana_cloud_pyroscope" {
   endpoint {
-    url = env("GRAFANA_CLOUD_PYROSCOPE_ENDPOINT")
+    url = env("GRAFANA_CLOUD_PYRO_ENDPOINT")
     basic_auth {
-      username = env("GRAFANA_CLOUD_PYROSCOPE_USERNAME")
-      password = env("GRAFANA_CLOUD_PYROSCOPE_PASSWORD")
+      username = env("GRAFANA_CLOUD_PYRO_USERNAME")
+      password = env("GRAFANA_CLOUD_PYRO_PASSWORD")
     }
   }
 }
