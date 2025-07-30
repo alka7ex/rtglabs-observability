@@ -365,33 +365,53 @@ otelcol.receiver.otlp "default" {
 // PROFILING INTEGRATION (CORRECTED)
 // =========================================================================
 
-// Discovery targets for profiling
+// Use Docker discovery to find your Go applications
+discovery.docker "go_applications" {
+  host = "unix:///var/run/docker.sock"
+}
+
 discovery.relabel "profiling_go_applications_targets" {
-  targets = [
-    {
-      __address__ = "goapp1:6060",
-      job         = "go_application",
-      instance    = "goapp1",
-    },
-    {
-      __address__ = "goapp2:6060", 
-      job         = "go_application",
-      instance    = "goapp2",
-    },
-    {
-      __address__ = "goapp3:6060",
-      job         = "go_application", 
-      instance    = "goapp3",
-    },
-  ]
+  targets = discovery.docker.go_applications.targets
+  
+  // Only target containers with coolify.managed=true and coolify.applicationId=rtglabs-go
+  rule {
+    source_labels = ["__meta_docker_container_label_coolify_managed"]
+    regex = "true"
+    action = "keep"
+  }
   
   rule {
+    source_labels = ["__meta_docker_container_label_coolify_applicationId"]
+    regex = "rtglabs-go"
+    action = "keep"
+  }
+  
+  // Set the address to container:8080 (since pprof is on the same port as your app)
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    target_label = "__address__"
+    replacement = "${1}:8080"
+  }
+  
+  // Set instance label to container name
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    target_label = "instance"
+  }
+  
+  // Set job label
+  rule {
+    target_label = "job"
+    replacement = "go_application"
+  }
+  
+  // Add environment label
+  rule {
     target_label = "environment"
-    replacement  = "production"
+    replacement = "production"
   }
 }
 
-// Use pyroscope.scrape instead of profiling.pull
 pyroscope.scrape "go_applications" {
   targets    = discovery.relabel.profiling_go_applications_targets.output
   forward_to = [pyroscope.write.grafana_cloud_pyroscope.receiver]
@@ -410,29 +430,14 @@ pyroscope.scrape "go_applications" {
       delta   = true
     }
     
-    profile.godeltaprof_memory {
-      enabled = true  
-      path    = "/debug/pprof/delta_heap"
-    }
-    
     profile.memory {
       enabled = true
       path    = "/debug/pprof/heap"  
     }
     
-    profile.godeltaprof_mutex {
-      enabled = true
-      path    = "/debug/pprof/delta_mutex"
-    }
-    
     profile.mutex {
       enabled = true
       path    = "/debug/pprof/mutex"
-    }
-    
-    profile.godeltaprof_block {
-      enabled = true
-      path    = "/debug/pprof/delta_block" 
     }
     
     profile.block {
