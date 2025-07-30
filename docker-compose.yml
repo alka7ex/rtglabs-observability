@@ -39,6 +39,16 @@ services:
       - coolify.managed=true
       - coolify.applicationId=17
       - coolify.type=application
+      - "traefik.enable=true" # Enable Traefik for this service
+      - "traefik.http.routers.alloy-router.rule=Host(`alloy.rtglabs.net`)" # Your desired domain
+      - "traefik.http.routers.alloy-router.entrypoints=http,https" # Allow access via HTTP and HTTPS
+      - "traefik.http.routers.alloy-router.tls.certresolver=letsencrypt" # Use Coolify's configured Let's Encrypt resolver for HTTPS
+      - "traefik.http.services.alloy-service.loadbalancer.server.port=9090" # The internal container port Alloy's UI listens on
+      # Optional: Redirect HTTP to HTTPS
+      - "traefik.http.routers.alloy-router-http.rule=Host(`alloy.rtglabs.net`)"
+      - "traefik.http.routers.alloy-router-http.entrypoints=http"
+      - "traefik.http.routers.alloy-router-http.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
     privileged: true # This is often necessary for full host visibility via exporter.unix and journal.
 networks:
   coolify:
