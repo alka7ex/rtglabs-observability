@@ -370,65 +370,73 @@ discovery.docker "go_applications" {
 
 discovery.relabel "profiling_go_applications_targets" {
   targets = discovery.docker.go_applications.targets
-  
-  // Target containers that match the goapp naming pattern AND are coolify managed
+
+  // Rule 1: Filter to only keep Coolify managed containers
   rule {
     source_labels = ["__meta_docker_container_label_coolify_managed"]
     regex = "true"
     action = "keep"
   }
+  
+  // Rule 2 (CRITICAL FIX): Capture the full container name *without* the leading slash
+  // and store it in a temporary label that will be used for network addresses.
   rule {
     source_labels = ["__meta_docker_container_name"]
-    regex = "^/?goapp[0-9]+.*"
-    action = "keep"
+    regex = "^/?(.*)" // Captures everything *after* an optional leading slash into $1
+    target_label = "temporary_clean_container_name" 
+    action = "replace" // This rule creates a new label
+  }
+
+  // Rule 3: Filter *again* to only keep containers whose CLEAN name starts with "goapp"
+  // This ensures only your Go apps are processed.
+  rule {
+    source_labels = ["temporary_clean_container_name"]
+    regex = "^goapp[0-9]+.*"
+    action = "keep" // Drop targets that don't match this regex
   }
   
-  // FIXED: Use the actual container name for network communication
-  // Extract the full container name and use it as the address
+  // Rule 4: Set __address__ using the clean container name from 'temporary_clean_container_name'
   rule {
-    source_labels = ["__meta_docker_container_name"]
+    source_labels = ["temporary_clean_container_name"]
     target_label = "__address__"
-    replacement = "${1}:8080"
+    replacement = "$1:8080" // $1 refers to the value of temporary_clean_container_name (e.g., "goapp3-...")
+    action = "replace" // Explicitly define action
   }
   
-  // Extract the base name (goapp1, goapp2, etc.) for labeling purposes
+  // Rule 5: Extract the base name (goapp1, goapp2, etc.) for the 'instance' label
   rule {
-    source_labels = ["__meta_docker_container_name"]
-    regex = "^(goapp[0-9]+).*"
-    target_label = "container_base_name"
+    source_labels = ["temporary_clean_container_name"]
+    regex = "^(goapp[0-9]+).*" // Capture the base name into $1 for this rule
+    target_label = "instance"
     action = "replace"
   }
   
-  // Use the base name as the instance label for better readability in Grafana
+  // Rule 6: Add the full, clean container name as a separate 'container_name' label for debugging/context
   rule {
-    source_labels = ["container_base_name"]
-    target_label = "instance"
-    replacement = "${1}"
-  }
-  
-  // Add the full container name as a label for debugging
-  rule {
-    source_labels = ["__meta_docker_container_name"]
+    source_labels = ["temporary_clean_container_name"]
     target_label = "container_name"
-    replacement = "${1}"
+    action = "replace"
   }
   
-  // Set job label
+  // Rule 7: Set job label (static value)
   rule {
     target_label = "job"
     replacement = "go_application"
+    action = "replace"
   }
   
-  // Add environment label
+  // Rule 8: Add environment label (static value)
   rule {
     target_label = "environment"
     replacement = "production"
+    action = "replace"
   }
   
-  // Add application label
+  // Rule 9: Add application label (static value)
   rule {
     target_label = "application"
     replacement = "rtglabs-go"
+    action = "replace"
   }
 }
 
