@@ -371,39 +371,48 @@ discovery.docker "go_applications" {
 
 discovery.relabel "profiling_go_applications_targets" {
   targets = discovery.docker.go_applications.targets
-  
+
   // Only target containers with coolify.managed=true and coolify.applicationId=rtglabs-go
   rule {
     source_labels = ["__meta_docker_container_label_coolify_managed"]
     regex = "true"
     action = "keep"
   }
-  
+
   rule {
     source_labels = ["__meta_docker_container_label_coolify_applicationId"]
     regex = "rtglabs-go"
     action = "keep"
   }
-  
-  // Set the address to container:8080 (since pprof is on the same port as your app)
+
+  // NEW/MODIFIED RULES: Extract the base container name
   rule {
     source_labels = ["__meta_docker_container_name"]
+    regex = "^(goapp[0-9]+).*" # Capture "goapp1", "goapp2", "goapp3"
+    target_label = "container_base_name" # Create a temporary label for the base name
+    action = "replace"
+  }
+
+  // Set the address to container_base_name:8080
+  rule {
+    source_labels = ["container_base_name"]
     target_label = "__address__"
-    replacement = "${1}:8080"
+    replacement = "$1:8080" # Use the captured base name
   }
-  
-  // Set instance label to container name
+
+  // Set instance label to container_base_name
   rule {
-    source_labels = ["__meta_docker_container_name"]
+    source_labels = ["container_base_name"]
     target_label = "instance"
+    replacement = "$1" # Use the captured base name
   }
-  
+
   // Set job label
   rule {
     target_label = "job"
     replacement = "go_application"
   }
-  
+
   // Add environment label
   rule {
     target_label = "environment"
