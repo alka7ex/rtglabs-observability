@@ -2,11 +2,7 @@
 prometheus.remote_write "metrics_service" {
     endpoint {
         url = env("GRAFANA_CLOUD_PROM_ENDPOINT")
-        basic_auth {
-            username = env("GRAFANA_CLOUD_PROM_USERNAME")
-            password = env("GRAFANA_CLOUD_PROM_PASSWORD")
-        }
-    }
+	   }
 }
 
 // Loki endpoint for logs
