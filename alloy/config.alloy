@@ -1,4 +1,9 @@
 // Remote write endpoint for metrics
+server "alloy" {
+  http {
+    listen_address = "0.0.0.0:9090"
+  }
+}
 
 prometheus.remote_write "metrics_service" {
     endpoint {
