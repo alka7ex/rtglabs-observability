@@ -361,9 +361,8 @@ otelcol.receiver.otlp "default" {
 }
 
 // =========================================================================
-// PROFILING INTEGRATION (CORRECTED)
+// PROFILING INTEGRATION (CORRECTED FOR DYNAMIC CONTAINER NAMES)
 // =========================================================================
-
 // Use Docker discovery to find your Go applications
 discovery.docker "go_applications" {
   host = "unix:///var/run/docker.sock"
@@ -371,52 +370,65 @@ discovery.docker "go_applications" {
 
 discovery.relabel "profiling_go_applications_targets" {
   targets = discovery.docker.go_applications.targets
-
-  // Only target containers with coolify.managed=true and coolify.applicationId=rtglabs-go
+  
+  // Target containers that match the goapp naming pattern AND are coolify managed
   rule {
     source_labels = ["__meta_docker_container_label_coolify_managed"]
     regex = "true"
     action = "keep"
   }
-
-  rule {
-    source_labels = ["__meta_docker_container_label_coolify_applicationId"]
-    regex = "rtglabs-go"
-    action = "keep"
-  }
-
-  // NEW/MODIFIED RULES: Extract the base container name
   rule {
     source_labels = ["__meta_docker_container_name"]
-    regex = "^(goapp[0-9]+).*" 
-    target_label = "container_base_name" 
+    regex = "^/?goapp[0-9]+.*"
+    action = "keep"
+  }
+  
+  // FIXED: Use the actual container name for network communication
+  // Extract the full container name and use it as the address
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    target_label = "__address__"
+    replacement = "${1}:8080"
+  }
+  
+  // Extract the base name (goapp1, goapp2, etc.) for labeling purposes
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex = "^(goapp[0-9]+).*"
+    target_label = "container_base_name"
     action = "replace"
   }
-
-  // Set the address to container_base_name:8080
-  rule {
-    source_labels = ["container_base_name"]
-    target_label = "__address__"
-    replacement = "$1:8080" 
-  }
-
-  // Set instance label to container_base_name
+  
+  // Use the base name as the instance label for better readability in Grafana
   rule {
     source_labels = ["container_base_name"]
     target_label = "instance"
-    replacement = "$1" 
+    replacement = "${1}"
   }
-
+  
+  // Add the full container name as a label for debugging
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    target_label = "container_name"
+    replacement = "${1}"
+  }
+  
   // Set job label
   rule {
     target_label = "job"
     replacement = "go_application"
   }
-
+  
   // Add environment label
   rule {
     target_label = "environment"
     replacement = "production"
+  }
+  
+  // Add application label
+  rule {
+    target_label = "application"
+    replacement = "rtglabs-go"
   }
 }
 
