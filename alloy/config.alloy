@@ -20,8 +20,6 @@ loki.write "grafana_cloud_loki" {
     }
 }
 
-
-
 otelcol.exporter.otlp "grafana_cloud_tempo" {
   client {
     endpoint = env("GRAFANA_CLOUD_TEMPO_ENDPOINT")
@@ -53,8 +51,7 @@ pyroscope.write "grafana_cloud_pyroscope" {
 // =========================================================================
 
 prometheus.exporter.unix "integrations_node_exporter" {
-
-  rootfs_path = "/host"  
+  rootfs_path = "/host"
   disable_collectors = ["ipvs", "btrfs", "infiniband", "xfs", "zfs"]
 
   filesystem {
@@ -88,9 +85,9 @@ discovery.relabel "metrics_node_exporter_targets" {
 }
 
 prometheus.scrape "metrics_node_exporter" {
-  targets     = discovery.relabel.metrics_node_exporter_targets.output
-  forward_to  = [prometheus.relabel.metrics_node_exporter.receiver]
-  job_name    = "integrations/node_exporter" // Set job_name here directly
+  targets        = discovery.relabel.metrics_node_exporter_targets.output
+  forward_to     = [prometheus.relabel.metrics_node_exporter.receiver]
+  job_name       = "integrations/node_exporter" // Set job_name here directly
   scrape_interval = "15s"
   // metrics_path is not explicitly needed here as prometheus.exporter.unix handles it internally
 }
@@ -105,10 +102,16 @@ prometheus.relabel "metrics_node_exporter" {
     action        = "drop"
   }
 
-  // Add environment label (if not already added by default in the previous chain)
+  // Add environment label
   rule {
     target_label = "environment"
     replacement  = "production"
+  }
+
+  // KEEP only the important labels
+  rule {
+    action = "labelkeep"
+    regex = "__name__|job|instance|environment"
   }
 }
 
@@ -135,9 +138,9 @@ discovery.relabel "metrics_postgres_targets" {
 }
 
 prometheus.scrape "postgres_metrics" {
-    targets     = discovery.relabel.metrics_postgres_targets.output
-    forward_to  = [prometheus.relabel.metrics_postgres.receiver]
-    job_name    = "integrations/postgres_exporter" // Set job_name here directly
+    targets        = discovery.relabel.metrics_postgres_targets.output
+    forward_to     = [prometheus.relabel.metrics_postgres.receiver]
+    job_name       = "integrations/postgres_exporter" // Set job_name here directly
     scrape_interval = "30s"
     metrics_path = "/metrics"
 }
@@ -156,6 +159,12 @@ prometheus.relabel "metrics_postgres" {
     rule {
         target_label = "environment"
         replacement  = "production"
+    }
+
+    // KEEP only the important labels. Added 'datname' as it's useful for Postgres.
+    rule {
+        action = "labelkeep"
+        regex = "__name__|job|instance|environment|datname"
     }
 }
 
@@ -196,9 +205,9 @@ discovery.relabel "metrics_go_applications_targets" {
 }
 
 prometheus.scrape "metrics_go_applications" {
-  targets     = discovery.relabel.metrics_go_applications_targets.output
-  forward_to  = [prometheus.relabel.metrics_go_applications.receiver]
-  job_name    = "go_application" // Specific job for Go app metrics
+  targets        = discovery.relabel.metrics_go_applications_targets.output
+  forward_to     = [prometheus.relabel.metrics_go_applications.receiver]
+  job_name       = "go_application" // Specific job for Go app metrics
   scrape_interval = "15s"
   metrics_path = "/metrics"
 }
@@ -216,6 +225,12 @@ prometheus.relabel "metrics_go_applications" {
   rule {
     target_label = "environment"
     replacement  = "production"
+  }
+
+  // KEEP only the important labels
+  rule {
+    action = "labelkeep"
+    regex = "__name__|job|instance|environment|app_type|container_name"
   }
 }
 
@@ -298,8 +313,8 @@ declare "journal_module" {
   }
 
   loki.source.journal "default"  {
-      max_age       = "12h0m0s"
-      forward_to    = [loki.process.default.receiver]
+      max_age         = "12h0m0s"
+      forward_to      = [loki.process.default.receiver]
       relabel_rules = loki.relabel.default.rules
   }
 
@@ -383,7 +398,7 @@ discovery.relabel "profiling_go_applications_targets" {
   rule {
     source_labels = ["__meta_docker_container_name"]
     regex = "^/?(.*)" // Captures everything *after* an optional leading slash into $1
-    target_label = "temporary_clean_container_name" 
+    target_label = "temporary_clean_container_name"
     action = "replace" // This rule creates a new label
   }
 
@@ -460,7 +475,7 @@ pyroscope.scrape "go_applications" {
     
     profile.memory {
       enabled = true
-      path    = "/debug/pprof/heap"  
+      path    = "/debug/pprof/heap"
     }
     
     profile.mutex {
